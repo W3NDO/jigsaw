@@ -5,7 +5,7 @@ defmodule Bsp.Node do
 
   @type t :: %__MODULE__{
           id: String.t(),
-          direction: atom(),
+          direction: Types.Direction.t(),
           ratio: Float.t(),
           left: Bsp.Pane.t(),
           right: Bsp.Pane.t()
