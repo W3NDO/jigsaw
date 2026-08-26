@@ -23,7 +23,7 @@ defmodule Bsp.Layout do
   """
 
   alias Bsp.{Node, Pane}
-  alias Types.{Direction, Id}
+  alias Types.{Direction, Id, PaneShape, ValidationError}
 
   defstruct [:root, focused: nil, pane_ids: []]
 
@@ -31,7 +31,11 @@ defmodule Bsp.Layout do
 
   @spec new(Pane.t()) :: %__MODULE__{}
   def new(%Pane{id: root_name} = root_pane) do
-    %__MODULE__{root: root_pane, focused: root_name, pane_ids: [root_name]}
+    %__MODULE__{
+      root: %{root_pane | shape: %PaneShape{position: {0, 0}, width: 0, height: 0}},
+      focused: root_name,
+      pane_ids: [root_name]
+    }
   end
 
   def new(_), do: {:error, :invalid_layout}
@@ -52,14 +56,16 @@ defmodule Bsp.Layout do
   end
 
   # Found the pane to split
-  defp do_split(%Pane{id: id}, id, new_id, direction) do
+  defp do_split(%Pane{id: id} = pane, id, new_id, direction) do
+    shape = %PaneShape{position: {0, 0}, width: 0, height: 0}
+
     {:ok,
      %Node{
        id: Id.gen_id(),
        direction: direction,
        ratio: 0.5,
-       left: %Pane{id: id},
-       right: %Pane{id: new_id}
+       left: pane,
+       right: %Pane{id: new_id, shape: shape}
      }}
   end
 
@@ -343,4 +349,155 @@ defmodule Bsp.Layout do
   defp find_children(%Node{}, _) do
     {:error, :node_not_found}
   end
+
+  @doc """
+  Validates the layout based on specified invariants on nodes, panes and other crucial elements
+  """
+  @spec validate(%__MODULE__{}) :: {:ok, :valid} | {:error, :invalid}
+  def validate(%__MODULE__{root: %Node{} = root_node}) do
+    do_validate(root_node)
+  end
+
+  defp do_validate(
+         %Node{
+           id: node_id,
+           left: %Node{id: left_child_id} = left_child,
+           right: %Node{id: right_child_id} = right_child
+         } = node
+       ) do
+    with {:ok, :valid} <- validate_node(node),
+         {:ok, :valid} <- do_validate(left_child),
+         {:ok, :valid} <- do_validate(right_child) do
+      {:ok, :valid}
+    else
+      {:error, %ValidationError{id: ^node_id} = error} -> {:error, error}
+      {:error, %ValidationError{id: ^left_child_id} = error} -> {:error, error}
+      {:error, %ValidationError{id: ^right_child_id} = error} -> {:error, error}
+    end
+  end
+
+  defp do_validate(
+         %Node{
+           id: node_id,
+           left: %Pane{id: left_child_id} = left_child,
+           right: %Pane{id: right_child_id} = right_child
+         } = node
+       ) do
+    with {:ok, :valid} <- validate_node(node),
+         {:ok, :valid} <- do_validate(left_child),
+         {:ok, :valid} <- do_validate(right_child) do
+      {:ok, :valid}
+    else
+      {:error, %ValidationError{id: ^node_id} = error} -> {:error, error}
+      {:error, %ValidationError{id: ^left_child_id} = error} -> {:error, error}
+      {:error, %ValidationError{id: ^right_child_id} = error} -> {:error, error}
+    end
+  end
+
+  defp do_validate(
+         %Node{
+           id: node_id,
+           left: %Node{id: left_child_id} = left_child,
+           right: %Pane{id: right_child_id} = right_child
+         } = node
+       ) do
+    with {:ok, :valid} <- validate_node(node),
+         {:ok, :valid} <- do_validate(left_child),
+         {:ok, :valid} <- do_validate(right_child) do
+      {:ok, :valid}
+    else
+      {:error, %ValidationError{id: ^node_id} = error} -> {:error, error}
+      {:error, %ValidationError{id: ^left_child_id} = error} -> {:error, error}
+      {:error, %ValidationError{id: ^right_child_id} = error} -> {:error, error}
+    end
+  end
+
+  defp do_validate(
+         %Node{
+           id: node_id,
+           left: %Pane{id: left_child_id} = left_child,
+           right: %Node{id: right_child_id} = right_child
+         } = node
+       ) do
+    with {:ok, :valid} <- validate_node(node),
+         {:ok, :valid} <- do_validate(left_child),
+         {:ok, :valid} <- do_validate(right_child) do
+      {:ok, :valid}
+    else
+      {:error, %ValidationError{id: ^node_id} = error} -> {:error, error}
+      {:error, %ValidationError{id: ^left_child_id} = error} -> {:error, error}
+      {:error, %ValidationError{id: ^right_child_id} = error} -> {:error, error}
+    end
+  end
+
+  defp do_validate(%Pane{id: id, shape: %PaneShape{}} = pane) do
+    case validate_pane(pane) do
+      {:ok, :valid} -> {:ok, :valid}
+      {:error, validation_error} -> {:error, %{validation_error | id: id}}
+    end
+  end
+
+  defp do_validate(%Pane{id: id, shape: nil}) do
+    {:error,
+     %ValidationError{
+       subject: :shape,
+       id: id,
+       validation: :pane_shape,
+       reason: :invalid_pane_shape,
+       message: "Pane shape required"
+     }}
+  end
+
+  # Validates a node
+  def validate_node(%Node{id: id, ratio: ratio, direction: direction}) do
+    ratio_invariant = 0 < ratio && ratio < 1
+    direction_invariant = Enum.member?([:horizontal, :vertical], direction)
+
+    case ratio_invariant && direction_invariant do
+      true ->
+        {:ok, :valid}
+
+      false ->
+        reason =
+          cond do
+            not ratio_invariant and not direction_invariant ->
+              :ratio_and_direction_invariant
+
+            not ratio_invariant ->
+              :ratio_invariant
+
+            not direction_invariant ->
+              :direction_invariant
+          end
+
+        {:error,
+         %ValidationError{
+           subject: :node,
+           id: id,
+           validation: :node,
+           reason: reason
+         }}
+    end
+  end
+
+  def validate_node(_), do: false
+
+  # Validates a pane.
+  defp validate_pane(%Pane{id: id, shape: pane_shape}) when is_binary(id) do
+    case PaneShape.validate_points(pane_shape) do
+      {:ok, :valid} -> {:ok, :valid}
+      {:error, error} -> {:error, %{error | id: id}}
+    end
+  end
+
+  defp validate_pane(_),
+    do:
+      {:error,
+       %ValidationError{
+         subject: :pane,
+         id: nil,
+         validation: :pane_shape,
+         reason: :unkown,
+         message: "Unkown pane error"
+       }}
 end

@@ -1,10 +1,18 @@
 defmodule Bsp.LayoutTest do
   use ExUnit.Case
   alias Bsp.{Layout, Node, Pane}
+  alias Types.{PaneShape, ValidationError}
 
   describe "Generating a new layout" do
     test "creating a valid layout" do
-      assert %Bsp.Layout{root: %Bsp.Pane{id: "root"}, focused: "root", pane_ids: ["root"]} ==
+      assert %Bsp.Layout{
+               root: %Bsp.Pane{
+                 id: "root",
+                 shape: %Types.PaneShape{height: 0, position: {0, 0}, width: 0}
+               },
+               focused: "root",
+               pane_ids: ["root"]
+             } ==
                Layout.new(%Pane{id: "root"})
     end
 
@@ -227,6 +235,205 @@ defmodule Bsp.LayoutTest do
       node_id = layout.root.id
       assert {:ok, children} = Layout.children(layout, node_id)
       assert length(children) == 2
+    end
+  end
+
+  describe "validate_node/1" do
+    test "accepts a valid horizontal node" do
+      node = %Node{
+        id: "node-1",
+        direction: :horizontal,
+        ratio: 0.5
+      }
+
+      assert {:ok, :valid} = Layout.validate_node(node)
+    end
+
+    test "accepts a valid vertical node" do
+      node = %Node{
+        id: "node-1",
+        direction: :vertical,
+        ratio: 0.5
+      }
+
+      assert {:ok, :valid} = Layout.validate_node(node)
+    end
+
+    test "rejects a ratio of zero" do
+      node = %Node{
+        id: "node-1",
+        direction: :horizontal,
+        ratio: 0.0
+      }
+
+      assert {:error, %ValidationError{} = error} =
+               Layout.validate_node(node)
+
+      assert error.subject == :node
+      assert error.id == "node-1"
+      assert error.reason == :ratio_invariant
+    end
+
+    test "rejects a ratio of one" do
+      node = %Node{
+        id: "node-1",
+        direction: :horizontal,
+        ratio: 1.0
+      }
+
+      assert {:error, %ValidationError{} = error} =
+               Layout.validate_node(node)
+
+      assert error.subject == :node
+      assert error.id == "node-1"
+      assert error.reason == :ratio_invariant
+    end
+
+    test "rejects a negative ratio" do
+      node = %Node{
+        id: "node-1",
+        direction: :horizontal,
+        ratio: -0.5
+      }
+
+      assert {:error, %ValidationError{} = error} =
+               Layout.validate_node(node)
+
+      assert error.reason == :ratio_invariant
+    end
+
+    test "rejects a ratio greater than one" do
+      node = %Node{
+        id: "node-1",
+        direction: :horizontal,
+        ratio: 1.5
+      }
+
+      assert {:error, %ValidationError{} = error} =
+               Layout.validate_node(node)
+
+      assert error.reason == :ratio_invariant
+    end
+
+    test "accepts ratios strictly between zero and one" do
+      for ratio <- [0.01, 0.25, 0.5, 0.75, 0.99] do
+        node = %Node{
+          id: "node-1",
+          direction: :horizontal,
+          ratio: ratio
+        }
+
+        assert {:ok, :valid} = Layout.validate_node(node)
+      end
+    end
+
+    test "rejects an invalid direction" do
+      node = %Node{
+        id: "node-1",
+        direction: :diagonal,
+        ratio: 0.5
+      }
+
+      assert {:error, %ValidationError{} = error} =
+               Layout.validate_node(node)
+
+      assert error.subject == :node
+      assert error.id == "node-1"
+      assert error.reason == :direction_invariant
+    end
+
+    test "accepts only horizontal and vertical directions" do
+      for direction <- [:horizontal, :vertical] do
+        node = %Node{
+          id: "node-1",
+          direction: direction,
+          ratio: 0.5
+        }
+
+        assert {:ok, :valid} = Layout.validate_node(node)
+      end
+    end
+
+    test "reports both ratio and direction violations" do
+      node = %Node{
+        id: "node-1",
+        direction: :diagonal,
+        ratio: 2.0
+      }
+
+      assert {:error, %ValidationError{} = error} =
+               Layout.validate_node(node)
+
+      assert error.subject == :node
+      assert error.id == "node-1"
+      assert error.reason == :ratio_and_direction_invariant
+    end
+  end
+
+  describe "validate/1" do
+    setup do
+      left = %Pane{
+        id: "left",
+        shape: %PaneShape{
+          position: {0.0, 0.0},
+          width: 0.5,
+          height: 0.5
+        }
+      }
+
+      right = %Pane{
+        id: "right",
+        shape: %PaneShape{
+          position: {0.0, 0.0},
+          width: 0.5,
+          height: 0.5
+        }
+      }
+
+      root = %Node{
+        id: "root",
+        direction: :horizontal,
+        ratio: 0.5,
+        left: left,
+        right: right
+      }
+
+      layout = %Layout{
+        root: root
+      }
+
+      %{layout: layout, root: root, left: left, right: right}
+    end
+
+    test "validates a tree containing two panes", %{layout: layout} do
+      assert {:ok, :valid} = Layout.validate(layout)
+    end
+
+    test "returns the validation error for an invalid root node", %{layout: layout, root: root} do
+      root = %{root | direction: :diagonal}
+      layout = %{layout | root: root}
+
+      assert {:error, %ValidationError{} = error} =
+               Layout.validate(layout)
+
+      assert error.id == "root"
+      assert error.subject == :node
+      assert error.reason == :direction_invariant
+    end
+
+    test "rejects a pane without a shape", %{layout: layout, root: root, left: left} do
+      left = %{left | shape: nil}
+      root = %{root | left: left}
+      layout = %{layout | root: root}
+
+      assert {:error, %ValidationError{} = error} =
+               Layout.validate(layout)
+
+      assert error.subject == :shape
+      assert error.id == "left"
+      assert error.validation == :pane_shape
+      assert error.reason == :invalid_pane_shape
+      assert error.message == "Pane shape required"
     end
   end
 end
