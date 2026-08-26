@@ -1,4 +1,4 @@
-defmodule Types.PaneId do
+defmodule Types.Id do
   @moduledoc false
 
   @type t :: String.t()

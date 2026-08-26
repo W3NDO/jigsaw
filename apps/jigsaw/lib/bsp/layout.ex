@@ -23,7 +23,7 @@ defmodule Bsp.Layout do
   """
 
   alias Bsp.{Node, Pane}
-  alias Types.{Direction, PaneId}
+  alias Types.{Direction, Id}
 
   defstruct [:root, focused: nil, pane_ids: []]
 
@@ -36,7 +36,7 @@ defmodule Bsp.Layout do
 
   def new(_), do: {:error, :invalid_layout}
 
-  @spec split(%__MODULE__{}, PaneId.t(), PaneId.t(), Direction.t()) ::
+  @spec split(%__MODULE__{}, Id.t(), Id.t(), Direction.t()) ::
           {:ok, %__MODULE__{}} | {:error, :pane_not_found} | {:error, :duplicate_pane_id}
   def split(%__MODULE__{root: root, pane_ids: pane_ids} = layout, target_id, new_id, direction) do
     case Enum.member?(pane_ids, new_id) do
@@ -55,6 +55,7 @@ defmodule Bsp.Layout do
   defp do_split(%Pane{id: id}, id, new_id, direction) do
     {:ok,
      %Node{
+       id: Id.gen_id(),
        direction: direction,
        ratio: 0.5,
        left: %Pane{id: id},
@@ -73,19 +74,19 @@ defmodule Bsp.Layout do
       {:ok, new_left} ->
         {:ok, %{split | left: new_left}}
 
-      :error ->
+      {:error, :pane_not_found} ->
         case do_split(split.right, target_id, new_id, direction) do
           {:ok, new_right} ->
             {:ok, %{split | right: new_right}}
 
-          :error ->
-            :error
+          {:error, :pane_not_found} ->
+            {:error, :pane_not_found}
         end
     end
   end
 
   # Close
-  @spec close(%__MODULE__{}, PaneId.t()) :: {:ok, %__MODULE__{}} | {:error, :pane_not_found}
+  @spec close(%__MODULE__{}, Id.t()) :: {:ok, %__MODULE__{}} | {:error, :pane_not_found}
   def close(%__MODULE__{root: root, pane_ids: pane_ids} = layout, pane_id) do
     case Enum.member?(pane_ids, pane_id) do
       false ->
@@ -133,7 +134,7 @@ defmodule Bsp.Layout do
   end
 
   # Swap panes
-  @spec swap(%__MODULE__{}, PaneId.t(), PaneId.t()) ::
+  @spec swap(%__MODULE__{}, Id.t(), Id.t()) ::
           {:ok, %__MODULE__{}} | {:error, :pane_not_found} | {:error, :swap_failed}
   def swap(%__MODULE__{root: root, pane_ids: pane_ids} = layout, pane_1_id, pane_2_id) do
     case Enum.member?(pane_ids, pane_1_id) && Enum.member?(pane_ids, pane_2_id) do
@@ -173,11 +174,173 @@ defmodule Bsp.Layout do
   def resize(_layout, _target_1, _target_2), do: nil
 
   # focus/2
-  @spec focus(%__MODULE__{}, PaneId.t()) :: {:ok, %__MODULE__{}} | {:error, :pane_not_found}
+  @spec focus(%__MODULE__{}, Id.t()) :: {:ok, %__MODULE__{}} | {:error, :pane_not_found}
   def focus(%__MODULE__{pane_ids: pane_ids} = layout, target_id) do
     case Enum.member?(pane_ids, target_id) do
       true -> {:ok, %{layout | focused: target_id}}
       false -> {:error, :pane_not_found}
     end
+  end
+
+  # QUERIES ----------------------------
+  # Layout.panes/1
+  # Layout.find/2
+  # Layout.compute/2
+  # Layout.focused/1
+  # Layout.parent/2
+  # Layout.children/2
+  # Layout.serialize/1
+  # Layout.deserialize/1
+  # Layout.validate/1
+  #
+  @spec panes(%__MODULE__{}) :: list(Id.t())
+  def panes(%__MODULE__{pane_ids: pane_ids}), do: pane_ids
+
+  @spec find(%__MODULE__{}, Id.t()) :: Pane.t() | {:error, :pane_not_found}
+  def find(%__MODULE__{root: layout_node, pane_ids: pane_ids}, pane_id) do
+    case Enum.member?(pane_ids, pane_id) do
+      true ->
+        find_pane(layout_node, pane_id)
+
+      false ->
+        {:error, :pane_not_found}
+    end
+  end
+
+  defp find_pane(
+         %Node{
+           left: %Pane{id: pane_id} = left_pane
+         },
+         pane_id
+       ) do
+    {:ok, left_pane}
+  end
+
+  defp find_pane(
+         %Node{
+           right: %Pane{id: pane_id} = right_pane
+         },
+         pane_id
+       ) do
+    {:ok, right_pane}
+  end
+
+  defp find_pane(
+         %Node{
+           left: %Node{} = left_node,
+           right: %Node{} = right_node
+         },
+         pane_id
+       ) do
+    case find_pane(left_node, pane_id) do
+      {:error, :pane_not_found} -> find_pane(right_node, pane_id)
+      {:ok, pane} -> {:ok, pane}
+    end
+  end
+
+  defp find_pane(
+         %Node{},
+         _pane_id
+       ) do
+    {:error, :pane_not_found}
+  end
+
+  @spec focused?(%__MODULE__{}, Id.t()) :: boolean()
+  def focused?(%__MODULE__{focused: focused, pane_ids: pane_ids}, pane_id) do
+    case Enum.member?(pane_ids, pane_id) do
+      true ->
+        pane_id == focused
+
+      false ->
+        {:error, :pane_not_found}
+    end
+  end
+
+  @spec focused(%__MODULE__{}) :: {:ok, Id.t()}
+  def focused(%__MODULE__{focused: focused}) do
+    {:ok, focused}
+  end
+
+  @spec parent(%__MODULE__{}, Id.t()) ::
+          {:ok, Node.t()} | {:error, :pane_not_found} | {:error, :no_parent}
+  def parent(%__MODULE__{root: root_node, pane_ids: pane_ids}, pane_id) do
+    case Enum.member?(pane_ids, pane_id) do
+      true -> find_parent(root_node, pane_id)
+      false -> {:error, :pane_not_found}
+    end
+  end
+
+  defp find_parent(%Node{right: %Pane{id: pane_id}} = node, pane_id) do
+    {:ok, node}
+  end
+
+  defp find_parent(%Node{left: %Pane{id: pane_id}} = node, pane_id) do
+    {:ok, node}
+  end
+
+  defp find_parent(%Node{right: %Node{} = right_node, left: %Pane{}}, pane_id) do
+    case find_parent(right_node, pane_id) do
+      {:ok, node} -> {:ok, node}
+      {:error, :no_parent} -> {:error, :node_not_found}
+    end
+  end
+
+  defp find_parent(%Node{left: %Node{} = left_node, right: %Pane{}}, pane_id) do
+    case find_parent(left_node, pane_id) do
+      {:ok, node} -> {:ok, node}
+      {:error, :no_parent} -> {:error, :node_not_found}
+    end
+  end
+
+  defp find_parent(%Node{right: %Node{} = right_node, left: %Node{} = left_node}, pane_id) do
+    case find_parent(left_node, pane_id) do
+      {:ok, node} -> {:ok, node}
+      {:error, :no_parent} -> find_parent(right_node, pane_id)
+    end
+  end
+
+  defp find_parent(_, _pane_id) do
+    {:error, :no_parent}
+  end
+
+  @spec children(%__MODULE__{}, String.t()) ::
+          {:ok, list(Pane.t())} | {:error, :node_not_found} | {:error, :no_children}
+  def children(%__MODULE__{root: root_node}, node_id) do
+    find_children(root_node, node_id)
+  end
+
+  defp find_children(
+         %Node{id: node_id, left: left_child, right: right_child},
+         node_id
+       ) do
+    {:ok, [left_child, right_child]}
+  end
+
+  defp find_children(%Node{left: %Node{} = left_child, right: %Pane{}}, node_id) do
+    case find_children(left_child, node_id) do
+      {:ok, children} -> {:ok, children}
+      {:error, :node_not_found} -> {:error, :node_not_found}
+    end
+  end
+
+  defp find_children(%Node{right: %Node{} = right_child, left: %Pane{}}, node_id) do
+    case find_children(right_child, node_id) do
+      {:ok, children} -> {:ok, children}
+      {:error, :node_not_found} -> {:error, :node_not_found}
+    end
+  end
+
+  defp find_children(
+         %Node{left: %Node{} = left_child, right: %Node{} = right_child},
+         node_id
+       ) do
+    case find_children(left_child, node_id) do
+      {:ok, children} -> {:ok, children}
+      {:error, :node_not_found} -> find_children(right_child, node_id)
+    end
+  end
+
+  defp find_children(%Node{}, _) do
+    {:error, :node_not_found}
   end
 end
