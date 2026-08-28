@@ -8,7 +8,7 @@ defmodule Bsp.LayoutTest do
       assert %Bsp.Layout{
                root: %Bsp.Pane{
                  id: "root",
-                 shape: %Types.PaneShape{height: 0, position: {0, 0}, width: 0}
+                 shape: %Types.PaneShape{height: 100, position: {0, 0}, width: 100}
                },
                focused: "root",
                pane_ids: ["root"]
@@ -29,7 +29,7 @@ defmodule Bsp.LayoutTest do
     end
 
     test "split returns left and right panes", %{layout: layout} do
-      {:ok, new_layout} = Layout.split(layout, "root", "left", :horizontal)
+      {:ok, new_layout} = Layout.split(layout, "root", "left")
 
       assert %Bsp.Layout{
                root: %Bsp.Node{
@@ -45,19 +45,33 @@ defmodule Bsp.LayoutTest do
     end
 
     test "split updates pane_ids", %{layout: layout} do
-      {:ok, new_layout} = Layout.split(layout, "root", "right", :horizontal)
+      {:ok, new_layout} = Layout.split(layout, "root", "right")
 
       assert "right" in new_layout.pane_ids
       assert "root" in new_layout.pane_ids
     end
 
+    test "split alternates direction", %{layout: layout} do
+      {:ok, new_layout_1} = Layout.split(layout, "root", "right")
+
+      assert :horizontal == new_layout_1.root.direction
+
+      {:ok, new_layout_2} = Layout.split(new_layout_1, "right", "left")
+      {:ok, %Node{direction: new_direction}} = Layout.parent(new_layout_2, "right")
+      assert :vertical == new_direction
+
+      {:ok, new_layout_3} = Layout.split(new_layout_2, "left", "another_left")
+      {:ok, %Node{direction: new_direction}} = Layout.parent(new_layout_3, "another_left")
+      assert :horizontal == new_direction
+    end
+
     test "split fails with duplicate pane_ids", %{layout: layout} do
-      assert {:error, :duplicate_pane_id} == Layout.split(layout, "root", "root", :horizontal)
+      assert {:error, :duplicate_pane_id} == Layout.split(layout, "root", "root")
     end
 
     test "split fails with pnae_not_found", %{layout: layout} do
       assert {:error, :pane_not_found} ==
-               Layout.split(layout, "false_root", "pane_2", :horizontal)
+               Layout.split(layout, "false_root", "pane_2")
     end
   end
 
@@ -65,7 +79,7 @@ defmodule Bsp.LayoutTest do
     setup do
       {:ok, layout} =
         %Bsp.Layout{root: %Bsp.Pane{id: "root"}, focused: "root", pane_ids: ["root"]}
-        |> Layout.split("root", "right", :vertical)
+        |> Layout.split("root", "right")
 
       %{layout: layout}
     end
@@ -86,7 +100,7 @@ defmodule Bsp.LayoutTest do
     setup do
       {:ok, layout} =
         %Bsp.Layout{root: %Bsp.Pane{id: "root"}, focused: "root", pane_ids: ["root"]}
-        |> Layout.split("root", "right", :vertical)
+        |> Layout.split("root", "right")
 
       %{layout: layout}
     end
@@ -100,20 +114,26 @@ defmodule Bsp.LayoutTest do
                focused: "root",
                pane_ids: ["right", "root"],
                root: %Bsp.Node{
-                 direction: :vertical,
+                 direction: :horizontal,
                  left: %Bsp.Pane{id: "right"},
                  ratio: 0.5,
                  right: %Bsp.Pane{id: "root"}
                }
              } = Layout.swap(layout, "root", "right")
     end
+
+    test "Swaps panes on different nodes fails with :swap_failed_error", %{layout: layout} do
+      {:ok, new_layout} = Layout.split(layout, "right", "left")
+
+      assert {:error, :swap_failed} = Layout.swap(new_layout, "root", "left")
+    end
   end
 
-  describe "swap focus" do
+  describe "change focus" do
     setup do
       {:ok, layout} =
         %Bsp.Layout{root: %Bsp.Pane{id: "root"}, focused: "root", pane_ids: ["root"]}
-        |> Layout.split("root", "right", :vertical)
+        |> Layout.split("root", "right")
 
       %{layout: layout}
     end
@@ -132,7 +152,7 @@ defmodule Bsp.LayoutTest do
     setup do
       {:ok, layout} =
         %Bsp.Layout{root: %Bsp.Pane{id: "root"}, focused: "root", pane_ids: ["root"]}
-        |> Layout.split("root", "right", :vertical)
+        |> Layout.split("root", "right")
 
       %{layout: layout}
     end
@@ -146,7 +166,7 @@ defmodule Bsp.LayoutTest do
     setup do
       {:ok, layout} =
         %Bsp.Layout{root: %Bsp.Pane{id: "root"}, focused: "root", pane_ids: ["root"]}
-        |> Layout.split("root", "right", :vertical)
+        |> Layout.split("root", "right")
 
       %{layout: layout}
     end
@@ -164,7 +184,7 @@ defmodule Bsp.LayoutTest do
     setup do
       {:ok, layout} =
         %Bsp.Layout{root: %Bsp.Pane{id: "root"}, focused: "root", pane_ids: ["root"]}
-        |> Layout.split("root", "right", :vertical)
+        |> Layout.split("root", "right")
 
       %{layout: layout}
     end
@@ -186,7 +206,7 @@ defmodule Bsp.LayoutTest do
     setup do
       {:ok, layout} =
         %Bsp.Layout{root: %Bsp.Pane{id: "root"}, focused: "root", pane_ids: ["root"]}
-        |> Layout.split("root", "right", :vertical)
+        |> Layout.split("root", "right")
 
       %{layout: layout}
     end
@@ -200,9 +220,9 @@ defmodule Bsp.LayoutTest do
     setup do
       {:ok, layout} =
         %Bsp.Layout{root: %Bsp.Pane{id: "root"}, focused: "root", pane_ids: ["root"]}
-        |> Layout.split("root", "right", :vertical)
+        |> Layout.split("root", "right")
 
-      {:ok, layout} = Layout.split(layout, "right", "left", :horizontal)
+      {:ok, layout} = Layout.split(layout, "right", "left")
 
       %{layout: layout}
     end
@@ -220,15 +240,15 @@ defmodule Bsp.LayoutTest do
     setup do
       {:ok, layout} =
         %Bsp.Layout{root: %Bsp.Pane{id: "root"}, focused: "root", pane_ids: ["root"]}
-        |> Layout.split("root", "right", :vertical)
+        |> Layout.split("root", "right")
 
-      {:ok, layout} = Layout.split(layout, "right", "left", :horizontal)
+      {:ok, layout} = Layout.split(layout, "right", "left")
 
       %{layout: layout}
     end
 
-    test "fails with node_not_found if the pane_id doesn't exist", %{layout: layout} do
-      assert {:error, :node_not_found} == Layout.children(layout, "non_existent_id")
+    test "fails with no_children_found if the pane_id doesn't exist", %{layout: layout} do
+      assert {:error, :no_children_found} == Layout.children(layout, "non_existent_id")
     end
 
     test "Returns the children of a node. Ensures only 2 children exist", %{layout: layout} do

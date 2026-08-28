@@ -2,24 +2,13 @@ defmodule Bsp.Layout do
   @moduledoc """
   	The Engine keeps track of the layout tree. It exposes the following methods
 
-  	# Commands
+  	# Layout Manipulation
     Layout.new/1
     Layout.split/4
     Layout.close/2
     Layout.swap/3
-    Layout.resize/3
     Layout.focus/2
 
-    # Queries
-    Layout.panes/1
-    Layout.find/2
-    Layout.compute/2
-    Layout.focused/1
-    Layout.parent/2
-    Layout.children/2
-    Layout.serialize/1
-    Layout.deserialize/1
-    Layout.validate/1
   """
 
   alias Bsp.{Node, Pane}
@@ -27,12 +16,17 @@ defmodule Bsp.Layout do
 
   defstruct [:root, focused: nil, pane_ids: []]
 
+  @type t :: %{root: tree(), focused: String.t(), pane_ids: list(String.t())}
+
   @type tree :: Pane.t() | Node.t()
 
+  @doc """
+  Creates a new Layout with a single pane
+  """
   @spec new(Pane.t()) :: %__MODULE__{}
   def new(%Pane{id: root_name} = root_pane) do
     %__MODULE__{
-      root: %{root_pane | shape: %PaneShape{position: {0, 0}, width: 0, height: 0}},
+      root: %{root_pane | shape: %PaneShape{position: {0, 0}, width: 100, height: 100}},
       focused: root_name,
       pane_ids: [root_name]
     }
@@ -40,15 +34,57 @@ defmodule Bsp.Layout do
 
   def new(_), do: {:error, :invalid_layout}
 
-  @spec split(%__MODULE__{}, Id.t(), Id.t(), Direction.t()) ::
+  @doc """
+  Takes in a layout, a pane ID and a new pane ID to split it with. Returns an updated layout with the specified pane split into a node with 2 panes.
+  """
+  @spec split(%__MODULE__{}, Id.t(), Id.t()) ::
           {:ok, %__MODULE__{}} | {:error, :pane_not_found} | {:error, :duplicate_pane_id}
-  def split(%__MODULE__{root: root, pane_ids: pane_ids} = layout, target_id, new_id, direction) do
-    case Enum.member?(pane_ids, new_id) do
+
+  def split(
+        %__MODULE__{root: %Pane{}},
+        target_id,
+        target_id
+      ) do
+    {:error, :duplicate_pane_id}
+  end
+
+  def split(
+        %__MODULE__{root: %Pane{id: target_id} = pane, pane_ids: [target_id] = pane_ids} = layout,
+        target_id,
+        new_id
+      ) do
+    shape = %PaneShape{position: {0, 0}, width: 0, height: 0}
+
+    new_root = %Node{
+      id: Id.gen_id(),
+      direction: :horizontal,
+      ratio: 0.5,
+      left: pane,
+      right: %Pane{id: new_id, shape: shape}
+    }
+
+    {:ok, %{layout | root: new_root, pane_ids: [new_id | pane_ids]}}
+  end
+
+  def split(
+        %__MODULE__{root: %Pane{id: target_id}, pane_ids: [target_id]},
+        non_existent_id,
+        new_id
+      ) do
+    {:error, :pane_not_found}
+  end
+
+  def split(
+        %__MODULE__{root: %Node{} = root, pane_ids: pane_ids} = layout,
+        target_id,
+        new_id
+      ) do
+    case not Enum.member?(pane_ids, target_id) do
       true ->
-        {:error, :duplicate_pane_id}
+        {:error, :pane_not_found}
 
       false ->
-        case do_split(root, target_id, new_id, direction) do
+        case do_split(root, target_id, new_id) do
           {:ok, new_root} -> {:ok, %{layout | root: new_root, pane_ids: [new_id | pane_ids]}}
           {:error, :pane_not_found} -> {:error, :pane_not_found}
         end
@@ -59,10 +95,16 @@ defmodule Bsp.Layout do
   defp do_split(%Pane{id: id} = pane, id, new_id, direction) do
     shape = %PaneShape{position: {0, 0}, width: 0, height: 0}
 
+    new_direction =
+      case direction do
+        :horizontal -> :vertical
+        :vertical -> :horizontal
+      end
+
     {:ok,
      %Node{
        id: Id.gen_id(),
-       direction: direction,
+       direction: new_direction,
        ratio: 0.5,
        left: pane,
        right: %Pane{id: new_id, shape: shape}
@@ -74,14 +116,19 @@ defmodule Bsp.Layout do
     {:error, :pane_not_found}
   end
 
-  # Search the left first
-  defp do_split(%Node{} = split, target_id, new_id, direction) do
-    case do_split(split.left, target_id, new_id, direction) do
+  # # Search the left first
+  defp do_split(
+         %Node{left: %Pane{} = left_pane, right: %Pane{} = right_pane, direction: direction} =
+           split,
+         target_id,
+         new_id
+       ) do
+    case do_split(left_pane, target_id, new_id, direction) do
       {:ok, new_left} ->
         {:ok, %{split | left: new_left}}
 
       {:error, :pane_not_found} ->
-        case do_split(split.right, target_id, new_id, direction) do
+        case do_split(right_pane, target_id, new_id, direction) do
           {:ok, new_right} ->
             {:ok, %{split | right: new_right}}
 
@@ -91,7 +138,63 @@ defmodule Bsp.Layout do
     end
   end
 
-  # Close
+  defp do_split(
+         %Node{left: %Node{} = left_node, right: %Node{} = right_node, direction: direction} =
+           split,
+         target_id,
+         new_id
+       ) do
+    case do_split(left_node, target_id, new_id) do
+      {:ok, new_left} ->
+        {:ok, %{split | left: new_left}}
+
+      {:error, :pane_not_found} ->
+        case do_split(right_node, target_id, new_id) do
+          {:ok, new_right} -> {:ok, %{split | right: new_right}}
+          {:error, :pane_not_found} -> {:error, :pane_not_found}
+        end
+    end
+  end
+
+  defp do_split(
+         %Node{left: %Node{} = left_node, right: %Pane{} = right_pane, direction: direction} =
+           split,
+         target_id,
+         new_id
+       ) do
+    case do_split(left_node, target_id, new_id) do
+      {:ok, new_left} ->
+        {:ok, %{split | left: new_left}}
+
+      {:error, :pane_not_found} ->
+        case do_split(right_pane, target_id, new_id, direction) do
+          {:ok, new_right} -> {:ok, %{split | right: new_right}}
+          {:error, :pane_not_found} -> {:error, :pane_not_found}
+        end
+    end
+  end
+
+  defp do_split(
+         %Node{right: %Node{} = right_node, left: %Pane{} = left_pane, direction: direction} =
+           split,
+         target_id,
+         new_id
+       ) do
+    case do_split(right_node, target_id, new_id) do
+      {:ok, new_right} ->
+        {:ok, %{split | right: new_right}}
+
+      {:error, :pane_not_found} ->
+        case do_split(left_pane, target_id, new_id, direction) do
+          {:ok, new_left} -> {:ok, %{split | left: new_left}}
+          {:error, :pane_not_found} -> {:error, :pane_not_found}
+        end
+    end
+  end
+
+  @doc """
+  Takes in a layout and a `pane_id` to close. Returns a new layout with the pane with the specified `pane_id` removed from the tree.
+  """
   @spec close(%__MODULE__{}, Id.t()) :: {:ok, %__MODULE__{}} | {:error, :pane_not_found}
   def close(%__MODULE__{root: root, pane_ids: pane_ids} = layout, pane_id) do
     case Enum.member?(pane_ids, pane_id) do
@@ -139,7 +242,9 @@ defmodule Bsp.Layout do
     end
   end
 
-  # Swap panes
+  @doc """
+  Swaps the positions of panes. For now you can only swap panes on the same node.
+  """
   @spec swap(%__MODULE__{}, Id.t(), Id.t()) ::
           {:ok, %__MODULE__{}} | {:error, :pane_not_found} | {:error, :swap_failed}
   def swap(%__MODULE__{root: root, pane_ids: pane_ids} = layout, pane_1_id, pane_2_id) do
@@ -166,18 +271,12 @@ defmodule Bsp.Layout do
        do: {:ok, %Node{original_node | right: left_pane, left: right_pane}}
 
   defp do_swap(
-         %Node{
-           left: %Pane{},
-           right: %Pane{}
-         },
+         %Node{},
          _pane_1_id,
          _pane_2_id
        ) do
     {:error, :swap_failed}
   end
-
-  # resize/3
-  def resize(_layout, _target_1, _target_2), do: nil
 
   # focus/2
   @spec focus(%__MODULE__{}, Id.t()) :: {:ok, %__MODULE__{}} | {:error, :pane_not_found}
@@ -188,16 +287,18 @@ defmodule Bsp.Layout do
     end
   end
 
-  # QUERIES ----------------------------
+  # ============== LAYOUT QUERIES =====================
   # Layout.panes/1
   # Layout.find/2
-  # Layout.compute/2
   # Layout.focused/1
   # Layout.parent/2
   # Layout.children/2
+  # Layout.validate/1
+  #
+  # =============== Yet to Implement
+  # Layout.compute/2
   # Layout.serialize/1
   # Layout.deserialize/1
-  # Layout.validate/1
   #
   @spec panes(%__MODULE__{}) :: list(Id.t())
   def panes(%__MODULE__{pane_ids: pane_ids}), do: pane_ids
@@ -325,14 +426,14 @@ defmodule Bsp.Layout do
   defp find_children(%Node{left: %Node{} = left_child, right: %Pane{}}, node_id) do
     case find_children(left_child, node_id) do
       {:ok, children} -> {:ok, children}
-      {:error, :node_not_found} -> {:error, :node_not_found}
+      {:error, :no_children_found} -> {:error, :no_children_found}
     end
   end
 
   defp find_children(%Node{right: %Node{} = right_child, left: %Pane{}}, node_id) do
     case find_children(right_child, node_id) do
       {:ok, children} -> {:ok, children}
-      {:error, :node_not_found} -> {:error, :node_not_found}
+      {:error, :no_children_found} -> {:error, :no_children_found}
     end
   end
 
@@ -342,12 +443,12 @@ defmodule Bsp.Layout do
        ) do
     case find_children(left_child, node_id) do
       {:ok, children} -> {:ok, children}
-      {:error, :node_not_found} -> find_children(right_child, node_id)
+      {:error, :no_children_found} -> find_children(right_child, node_id)
     end
   end
 
   defp find_children(%Node{}, _) do
-    {:error, :node_not_found}
+    {:error, :no_children_found}
   end
 
   @doc """

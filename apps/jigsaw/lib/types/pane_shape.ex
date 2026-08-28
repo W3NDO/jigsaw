@@ -11,7 +11,7 @@ defmodule Types.PaneShape do
 
   defstruct [:position, :width, :height]
 
-  @spec validate_points(__MODULE__.t()) :: {:ok, :valid} | {:error, :shape_invariant_breach}
+  @spec validate_points(__MODULE__.t()) :: {:ok, :valid} | {:error, ValidationError.t()}
   def validate_points(%__MODULE__{position: {point_x, point_y}, width: width, height: height}) do
     all_greater_than_zero = Enum.all?([point_x, point_y, width, height], &greater_than_zero(&1))
 
