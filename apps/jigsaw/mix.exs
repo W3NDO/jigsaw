@@ -25,7 +25,10 @@ defmodule Jigsaw.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:phoenix, "~> 1.8"},
+      {:phoenix_live_view, "~> 1.2.0"},
+      {:floki, "~> 0.38", only: :test}
     ]
   end
 end

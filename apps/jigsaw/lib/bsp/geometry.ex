@@ -3,7 +3,7 @@ defmodule Bsp.Geometry do
   Calculates the geometry of all the panes.
   """
 
-  alias Bsp.{Layout, Pane, Node}
+  alias Bsp.{Layout, Node, Pane}
 
   defstruct [:id, :position, :width, :height]
 

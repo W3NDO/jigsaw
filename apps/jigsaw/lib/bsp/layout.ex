@@ -12,7 +12,7 @@ defmodule Bsp.Layout do
   """
 
   alias Bsp.{Node, Pane}
-  alias Types.{Direction, Id, PaneShape, ValidationError}
+  alias Types.{Id, PaneShape, ValidationError}
 
   defstruct [:root, focused: nil, pane_ids: []]
 
@@ -68,8 +68,8 @@ defmodule Bsp.Layout do
 
   def split(
         %__MODULE__{root: %Pane{id: target_id}, pane_ids: [target_id]},
-        non_existent_id,
-        new_id
+        _non_existent_id,
+        _new_id
       ) do
     {:error, :pane_not_found}
   end
@@ -139,7 +139,7 @@ defmodule Bsp.Layout do
   end
 
   defp do_split(
-         %Node{left: %Node{} = left_node, right: %Node{} = right_node, direction: direction} =
+         %Node{left: %Node{} = left_node, right: %Node{} = right_node} =
            split,
          target_id,
          new_id
