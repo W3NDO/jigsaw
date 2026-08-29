@@ -1,0 +1,33 @@
+<Layouts.flash_group flash={@flash} />
+<div class="w-full flex flex-col">
+  <div class="flex-1 border-b border-slate-600 py-2">
+    <h1 class="text-3xl m-2 w-full text-center m-auto">JIGSAW DEMO</h1>
+  </div>
+  <div class="w-full flex h-dvh">
+    <aside class="border-r border-slate-600">
+      <ul>
+        <%= for pane <- @available_panes_id do %>
+          <li>
+            <button phx-click="toggle-pane" phx-value-pane={pane} class="m-2 rounded-md p-2 hover:bg-slate-400">{pane}</button>
+          </li>
+        <% end %>
+      </ul>
+    </aside>
+
+    <div class="w-full h-full flex-1  m-2 border border-slate-600 rounded-sm">
+      <JigsawComponents.Components.layout jigsaw_layout={@jigsaw_layout}>
+        <:pane id="terminal">
+          <div class="">This is a test terminal</div>
+        </:pane>
+
+        <:pane id="music">
+          <div class="">This is a test music</div>
+        </:pane>
+
+        <:pane id="about">
+          <div class="">This is a test about</div>
+        </:pane>
+      </JigsawComponents.Components.layout>
+    </div>
+  </div>
+</div>

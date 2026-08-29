@@ -39,7 +39,7 @@ defmodule Bsp.LayoutTest do
                  left: %Bsp.Pane{id: "root"},
                  right: %Bsp.Pane{id: "left"}
                },
-               focused: "root",
+               focused: "left",
                pane_ids: ["left", "root"]
              } = new_layout
     end
@@ -91,7 +91,7 @@ defmodule Bsp.LayoutTest do
     test "Returns a new layout, with pane deleted", %{layout: layout} do
       {:ok, new_layout} = Layout.close(layout, "right")
 
-      assert %Bsp.Layout{root: %Bsp.Pane{id: "root"}, focused: "root", pane_ids: ["root"]} ==
+      assert %Bsp.Layout{root: %Bsp.Pane{id: "root"}, focused: "right", pane_ids: ["root"]} ==
                new_layout
     end
   end
@@ -111,7 +111,7 @@ defmodule Bsp.LayoutTest do
 
     test "swaps panes", %{layout: layout} do
       assert %Bsp.Layout{
-               focused: "root",
+               focused: "right",
                pane_ids: ["right", "root"],
                root: %Bsp.Node{
                  direction: :horizontal,
@@ -194,11 +194,11 @@ defmodule Bsp.LayoutTest do
     end
 
     test "Returns true if the pane exists and is focused", %{layout: layout} do
-      assert true == Layout.focused?(layout, "root")
+      assert true == Layout.focused?(layout, "right")
     end
 
     test "Returns false if the pane exists and is not focused", %{layout: layout} do
-      assert false == Layout.focused?(layout, "right")
+      assert false == Layout.focused?(layout, "root")
     end
   end
 
@@ -212,7 +212,7 @@ defmodule Bsp.LayoutTest do
     end
 
     test "Returns the focused pane_id", %{layout: layout} do
-      assert {:ok, "root"} = Layout.focused(layout)
+      assert {:ok, "right"} = Layout.focused(layout)
     end
   end
 

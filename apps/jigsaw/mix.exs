@@ -27,7 +27,7 @@ defmodule Jigsaw.MixProject do
     [
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:phoenix, "~> 1.8"},
-      {:phoenix_live_view, "~> 1.2.0"},
+      {:phoenix_live_view, "~> 1.1.0"},
       {:floki, "~> 0.38", only: :test}
     ]
   end

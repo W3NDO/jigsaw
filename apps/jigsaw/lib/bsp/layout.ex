@@ -63,7 +63,7 @@ defmodule Bsp.Layout do
       right: %Pane{id: new_id, shape: shape}
     }
 
-    {:ok, %{layout | root: new_root, pane_ids: [new_id | pane_ids]}}
+    {:ok, %{layout | root: new_root, focused: new_id, pane_ids: [new_id | pane_ids]}}
   end
 
   def split(
@@ -202,9 +202,11 @@ defmodule Bsp.Layout do
         {:error, :pane_not_found}
 
       true ->
+        pane_ids = List.delete(pane_ids, pane_id)
+        new_focused = Enum.random(pane_ids)
         case do_close(root, pane_id) do
           {:ok, new_root} ->
-            {:ok, %{layout | root: new_root, pane_ids: List.delete(pane_ids, pane_id)}}
+            {:ok, %{layout | root: new_root, focused: new_focused,  pane_ids: pane_ids}}
 
           {:error, :pane_not_found} ->
             {:error, :pane_not_found}
@@ -366,6 +368,11 @@ defmodule Bsp.Layout do
   @spec focused(%__MODULE__{}) :: {:ok, Id.t()}
   def focused(%__MODULE__{focused: focused}) do
     {:ok, focused}
+  end
+
+  @spec focused!(%__MODULE__{}) :: Id.t()
+  def focused!(%__MODULE__{focused: focused}) do
+    focused
   end
 
   @spec parent(%__MODULE__{}, Id.t()) ::
