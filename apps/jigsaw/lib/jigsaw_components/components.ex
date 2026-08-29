@@ -32,6 +32,16 @@ defmodule JigsawComponents.Components do
     """
   end
 
+  defp render_tree(%Layout{root: nil}, slots) do
+    assigns = %{
+    }
+    ~H"""
+    <div class="w-full h-full flex-1 m-2 p-2">
+      <h1> No Active Panes </h1>
+    </div>
+    """
+  end
+
   defp render_tree(%Layout{root: %Node{} = node}, slots) do
     assigns = %{
       pane: node, slots: slots

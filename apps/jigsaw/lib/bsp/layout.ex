@@ -14,11 +14,18 @@ defmodule Bsp.Layout do
   alias Bsp.{Node, Pane}
   alias Types.{Id, PaneShape, ValidationError}
 
-  defstruct [:root, focused: nil, pane_ids: []]
+  defstruct [root: nil, focused: nil, pane_ids: []]
 
   @type t :: %{root: tree(), focused: String.t(), pane_ids: list(String.t())}
 
   @type tree :: Pane.t() | Node.t()
+
+  @doc"""
+  Creates a new empty layout
+  """
+  @spec new :: %__MODULE__{}
+  def new, do: %__MODULE__{}
+
 
   @doc """
   Creates a new Layout with a single pane
@@ -34,11 +41,25 @@ defmodule Bsp.Layout do
 
   def new(_), do: {:error, :invalid_layout}
 
+  @doc"""
+  Takes an empty layout and a pane and returns the layout with the pane.
+  """
+  @spec insert(__MODULE__.t(), Pane.t()) :: __MODULE__.t()
+  def insert(%__MODULE__{pane_ids: pane_ids } = layout, %Pane{id: id} = pane) do
+    %{layout | root: pane, focused: id, pane_ids: [id | pane_ids]}
+  end
+
+  def insert(_, %Node{}), do: {:error, :invalid_layout}
+
   @doc """
   Takes in a layout, a pane ID and a new pane ID to split it with. Returns an updated layout with the specified pane split into a node with 2 panes.
   """
   @spec split(%__MODULE__{}, Id.t(), Id.t()) ::
           {:ok, %__MODULE__{}} | {:error, :pane_not_found} | {:error, :duplicate_pane_id}
+
+  def split(%__MODULE__{root: nil} = layout, _, new_id) do
+    {:ok, insert(layout, %Pane{id: new_id})}
+  end
 
   def split(
         %__MODULE__{root: %Pane{}},
@@ -203,7 +224,7 @@ defmodule Bsp.Layout do
 
       true ->
         pane_ids = List.delete(pane_ids, pane_id)
-        new_focused = Enum.random(pane_ids)
+        new_focused = if Enum.empty?(pane_ids), do: nil, else: Enum.random(pane_ids)
         case do_close(root, pane_id) do
           {:ok, new_root} ->
             {:ok, %{layout | root: new_root, focused: new_focused,  pane_ids: pane_ids}}

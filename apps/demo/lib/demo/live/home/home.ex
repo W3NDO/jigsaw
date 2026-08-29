@@ -7,7 +7,7 @@ defmodule Demo.Live.Home.Home do
   alias Bsp.Layout
 
   def mount(_, _, socket) do
-    jigsaw_layout = Bsp.Layout.new(%Bsp.Pane{id: "terminal"})
+    jigsaw_layout = Bsp.Layout.new
     assigns = %{
       active_panes: [],
       available_panes_id: ["terminal", "music", "about"],

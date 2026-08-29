@@ -4,6 +4,10 @@ defmodule Bsp.LayoutTest do
   alias Types.{PaneShape, ValidationError}
 
   describe "Generating a new layout" do
+    test "creating an empty layout" do
+      assert %Layout{root: nil, pane_ids: [], focused: nil} == Layout.new
+    end
+
     test "creating a valid layout" do
       assert %Bsp.Layout{
                root: %Bsp.Pane{
@@ -18,6 +22,21 @@ defmodule Bsp.LayoutTest do
 
     test "creating an invalid layout" do
       assert Layout.new(%{}) == {:error, :invalid_layout}
+    end
+  end
+
+  describe "Updating an empty layout" do
+    setup do
+      %{empty_layout: Layout.new}
+    end
+    test "accepts a pane and updates the layout", %{empty_layout: empty_layout} do
+      pane = %Pane{id: "root"}
+      assert %Layout{root: pane, pane_ids: ["root"], focused: "root"} = Layout.insert(empty_layout, pane)
+    end
+
+    test "errors out if you try and insert a node on an empty layout", %{empty_layout: empty_layout} do
+      node = %Node{id: "node_id", left: %Pane{id: "left"}, right: %Pane{id: "right"}}
+      assert {:error, :invalid_layout} = Layout.insert(empty_layout, node)
     end
   end
 
@@ -91,7 +110,7 @@ defmodule Bsp.LayoutTest do
     test "Returns a new layout, with pane deleted", %{layout: layout} do
       {:ok, new_layout} = Layout.close(layout, "right")
 
-      assert %Bsp.Layout{root: %Bsp.Pane{id: "root"}, focused: "right", pane_ids: ["root"]} ==
+      assert %Bsp.Layout{root: %Bsp.Pane{id: "root"}, focused: "root", pane_ids: ["root"]} ==
                new_layout
     end
   end

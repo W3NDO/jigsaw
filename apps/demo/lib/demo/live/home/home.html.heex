@@ -1,19 +1,59 @@
 <Layouts.flash_group flash={@flash} />
 <div class="w-full flex flex-col">
-  <div class="flex-1 border-b border-slate-600 py-2">
-    <h1 class="text-3xl m-2 w-full text-center m-auto">JIGSAW DEMO</h1>
+  <!-- Wallpaper -->
+  <img src="images/jigsaw_background.jpg" class="h-dvh w-dvw brightness-50 absolute top-0 -z-99">
+
+  <!-- Top bar -->
+  <div
+    class="absolute inset-x-0 top-0 z-50 h-[3dvh] min-h-7 border-b border-white/10 bg-gray-950/85 px-4 shadow-sm backdrop-blur"
+  >
+    <ul class="grid h-full grid-cols-3 items-center text-xs font-medium">
+      <!-- Clock -->
+      <li id="clock" class="justify-self-start text-gray-300" phx-update="ignore">
+        --:--
+      </li>
+
+      <!-- Application -->
+      <li class="justify-self-center tracking-wide text-white">
+        JIGSAW
+      </li>
+
+      <!-- Battery -->
+      <li class="flex items-center gap-1.5 justify-self-end text-gray-300">
+        <.icon name="hero-battery-50" class="h-3.5 w-3.5" />
+        <span>Battery</span>
+      </li>
+    </ul>
   </div>
-  <div class="w-full flex h-dvh">
-    <aside class="border-r border-slate-600">
-      <ul>
+
+    <!-- Bottom navbar -->
+  <div class="w-[50vw] p-1 m-auto border rounded-full border-slate-500 absolute left-[25vw] bottom-10 z-10 hover:bg-gray-950/85">
+    <div class="flex justify-around">
+      <ul class="flex justify-between">
         <%= for pane <- @available_panes_id do %>
           <li>
-            <button phx-click="toggle-pane" phx-value-pane={pane} class="m-2 rounded-md p-2 hover:bg-slate-400">{pane}</button>
+            <button phx-click="toggle-pane" phx-value-pane={pane} class="m-1 rounded-md px-2 ">
+              <div class="rounded-sm border-b border-transparent hover:border-slate-500" title={pane}>
+                <%= case pane do%>
+                  <% "terminal" -> %>
+                      <.icon name="hero-command-line" class="size-10"/>
+
+                  <% "music" -> %>
+                    <.icon name="hero-play" class="size-10" />
+
+                  <% "about" -> %>
+                    <.icon name="hero-information-circle" class="size-10" />
+
+                <% end %>
+              </div>
+            </button>
           </li>
         <% end %>
       </ul>
-    </aside>
+    </div>
+  </div>
 
+  <div class="w-full flex absolute top-[3dvh] h-[97vh]">
     <div class="w-full h-full flex-1  m-2 border border-slate-600 rounded-sm">
       <JigsawComponents.Components.layout jigsaw_layout={@jigsaw_layout}>
         <:pane id="terminal">
@@ -31,3 +71,23 @@
     </div>
   </div>
 </div>
+
+<script>
+  function updateClock() {
+    const clock = document.getElementById("clock");
+
+    if (!clock) return;
+
+    const now = new Date();
+
+    clock.textContent = now.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false
+    });
+  }
+
+  updateClock();
+  setInterval(updateClock, 1000);
+</script>
