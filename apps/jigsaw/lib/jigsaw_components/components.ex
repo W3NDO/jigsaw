@@ -15,7 +15,7 @@ defmodule JigsawComponents.Components do
 
   def layout(assigns) do
     ~H"""
-    <div>
+    <div class="h-full w-full">
       {render_tree(@jigsaw_layout, @pane)}
     </div>
     """
@@ -26,7 +26,7 @@ defmodule JigsawComponents.Components do
       pane: pane, slots: slots
     }
     ~H"""
-    <div class="w-full h-full flex-1 m-2 p-2" data-value="bingo">
+    <div class="w-full h-full flex">
       <.node_or_pane pane={pane} slots={slots} />
     </div>
     """
@@ -36,8 +36,7 @@ defmodule JigsawComponents.Components do
     assigns = %{
     }
     ~H"""
-    <div class="w-full h-full flex-1 m-2 p-2">
-      <h1> No Active Panes </h1>
+    <div class="w-full h-full flex ">
     </div>
     """
   end
@@ -47,7 +46,7 @@ defmodule JigsawComponents.Components do
       pane: node, slots: slots
     }
     ~H"""
-    <div class="w-full h-full flex-1 m-2 p-2">
+    <div class="w-full h-full flex">
       <.node_or_pane pane={node} slots={slots} />
     </div>
     """
@@ -59,12 +58,9 @@ defmodule JigsawComponents.Components do
     assigns = assign(assigns, :slot, slot)
 
     ~H"""
-    <div id={@pane.id} class="w-full h-full flex-1 m-2 p-2">
+    <div id={@pane.id} class="flex h-full w-full flex-1 flex-col p-2 rounded-sm bg-slate-400">
       <%= if @slot do %>
-        <div>
-          <div>
-            <.application_control_buttons pane={@pane} />
-          </div>
+        <div class="w-full h-full">
         <%= render_slot(@slot) %>
         </div>
       <% end %>
@@ -97,7 +93,7 @@ defmodule JigsawComponents.Components do
       )
 
     ~H"""
-    <div class={"flex flex-1 w-full h-full #{ @flex_direction }"}>
+    <div class={"flex h-full min-h-0 min-w-0 flex-1 #{@flex_direction}"}>
       <.node_or_pane
         pane={@left_pane}
         slots={@slots}
@@ -113,36 +109,5 @@ defmodule JigsawComponents.Components do
 
   defp find_slot(slots, id) do
     Enum.find(slots, &(&1[:id] == id))
-  end
-
-  attr :pane, :map, required: true
-  # close, minimize, expand
-  def application_control_buttons(assigns) do
-    ~H"""
-    <div class="w-full flex items-right gap-1.5">
-        <!-- Close -->
-        <button
-          type="button"
-          phx-click="close"
-          phx-value-pane={@pane.id}
-          aria-label="Close"
-          class="group flex h-4 w-4 items-center justify-center rounded-full bg-red-500 hover:bg-red-600"
-        >
-          x
-        </button>
-
-        <!-- Minimize -->
-        <button
-          type="button"
-          phx-click="minimize"
-          phx-value-pane={@pane.id}
-          aria-label="Minimize"
-          class="group flex h-4 w-4 items-center justify-center rounded-full bg-yellow-500 hover:bg-yellow-600"
-        >
-          -
-        </button>
-      </div>
-    """
-
   end
 end

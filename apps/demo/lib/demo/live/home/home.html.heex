@@ -1,7 +1,7 @@
 <Layouts.flash_group flash={@flash} />
 <div class="w-full flex flex-col">
   <!-- Wallpaper -->
-  <img src="images/jigsaw_background.jpg" class="h-dvh w-dvw brightness-50 absolute top-0 -z-99">
+  <img src="images/jigsaw_background.jpg" class="h-dvh w-dvw brightness-30 absolute top-0 -z-99">
 
   <!-- Top bar -->
   <div
@@ -20,8 +20,8 @@
 
       <!-- Battery -->
       <li class="flex items-center gap-1.5 justify-self-end text-gray-300">
-        <.icon name="hero-battery-50" class="h-3.5 w-3.5" />
-        <span>Battery</span>
+        <.icon name="hero-user" class="size-4" />
+        <span>DEMO USER</span>
       </li>
     </ul>
   </div>
@@ -33,7 +33,7 @@
         <%= for pane <- @available_panes_id do %>
           <li>
             <button phx-click="toggle-pane" phx-value-pane={pane} class="m-1 rounded-md px-2 ">
-              <div class="rounded-sm border-b border-transparent hover:border-slate-500" title={pane}>
+              <div class={"rounded-sm hover:border-b hover:border-slate-500 #{if Enum.member?(@active_panes, pane), do: "border-t border-slate-500", else: "border-transparent"} "} title={pane}>
                 <%= case pane do%>
                   <% "terminal" -> %>
                       <.icon name="hero-command-line" class="size-10"/>
@@ -53,19 +53,19 @@
     </div>
   </div>
 
-  <div class="w-full flex absolute top-[3dvh] h-[97vh]">
-    <div class="w-full h-full flex-1  m-2 border border-slate-600 rounded-sm">
+  <div class="absolute top-[3dvh] h-[96vh] min-h-[96dvh] w-full">
+    <div class="h-full w-full">
       <JigsawComponents.Components.layout jigsaw_layout={@jigsaw_layout}>
         <:pane id="terminal">
-          <div class="">This is a test terminal</div>
+          <Live.Home.Component.Terminal.terminal />
         </:pane>
 
         <:pane id="music">
-          <div class="">This is a test music</div>
+          <Live.Home.Component.Music.music />
         </:pane>
 
         <:pane id="about">
-          <div class="">This is a test about</div>
+          <Live.Home.Component.About.about />
         </:pane>
       </JigsawComponents.Components.layout>
     </div>
@@ -90,4 +90,57 @@
 
   updateClock();
   setInterval(updateClock, 1000);
+
+  const terminal = document.getElementById("terminal_component")
+  const input = document.getElementById("terminal-input")
+  const output = document.getElementById("terminal-output")
+
+  if (terminal && input && output) {
+    const commands = {
+      help: () => [
+        "Available commands:",
+        "",
+        "  help     Show available commands",
+        "  about    About Jigsaw"
+      ],
+
+      about: () => [
+        "Jigsaw",
+        "",
+        "A proof of concept tiling library for Phoenix applications.",
+        "Built with Elixir and Phoenix LiveView."
+      ]
+    }
+
+    function writeLine(text, className = "") {
+      const line = document.createElement("div")
+      line.className = className
+      line.textContent = text
+      output.insertBefore(line, input.parentElement)
+    }
+
+    input.addEventListener("keydown", event => {
+      if (event.key !== "Enter") return
+
+      const command = input.value.trim().toLowerCase()
+
+      if (!command) return
+
+      // Show entered command
+      writeLine(`$ ${command}`, "text-gray-300")
+
+      input.value = ""
+
+      if (commands[command]) {
+        commands[command]().forEach(line => {
+          writeLine(line, "text-gray-400")
+        })
+      } else {
+        writeLine(`Command not found: ${command}`, "text-red-400")
+        writeLine("Type 'help' for available commands.", "text-gray-500")
+      }
+
+      output.scrollTop = output.scrollHeight
+    })
+  }
 </script>

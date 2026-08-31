@@ -25,7 +25,7 @@ defmodule Demo.Live.Home.Home do
     case Enum.member?(active_panes, pane_id) do
       true ->
         {:ok, new_layout} = Layout.close(layout, pane_id)
-        new_active_panes = active_panes -- [pane_id]
+        new_active_panes = new_layout.pane_ids
 
         new_socket = socket |> assign(jigsaw_layout: new_layout, active_panes: new_active_panes)
 
@@ -33,12 +33,18 @@ defmodule Demo.Live.Home.Home do
 
       false ->
         {:ok, new_layout} = Layout.split(layout, focused_pane, pane_id)
-        new_active_panes = [pane_id | socket.assigns.active_panes]
+        new_active_panes = new_layout.pane_ids
 
         new_socket = socket |> assign(jigsaw_layout: new_layout, active_panes: new_active_panes)
 
         {:noreply, new_socket}
     end
 
+  end
+
+  def handle_event("close", %{"pane" => pane_id}, socket) do
+    layout = socket.assigns.jigsaw_layout
+    {:ok, new_layout} = Layout.close(layout, pane_id)
+    {:noreply, socket |> assign(jigsaw_layout: new_layout, active_panes: new_layout.pane_ids)}
   end
 end
