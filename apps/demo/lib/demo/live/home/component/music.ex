@@ -5,7 +5,7 @@ defmodule Live.Home.Component.Music do
 
   def music(assigns) do
     ~H"""
-    <div class="w-full h-full bg-slate-900 rounded-sm">
+    <div id="music-pane" class="w-full h-full bg-slate-900 rounded-sm" phx-update="ignore">
       <div class="flex h-7 shrink-0 items-center border-b border-white/10 px-2">
         <div class="ml-3 w-full flex items-center justify-between gap-1 text-sm text-gray-400">
           <div>
