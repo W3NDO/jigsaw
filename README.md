@@ -1,4 +1,6 @@
 # Jigsaw
+[![HexDocs](https://img.shields.io/badge/hex-docs-blue.svg)](https://jigsaw.hexdocs.pm/)
+[![Hex.pm](https://img.shields.io/hexpm/v/jigsaw.svg)](https://hex.pm/packages/jigsaw)
 
               ___  ___  ________  ________  ________  ___       __
             |\  \|\  \|\   ____\|\   ____\|\   __  \|\  \     |\  \
