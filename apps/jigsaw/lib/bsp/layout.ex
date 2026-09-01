@@ -1,14 +1,6 @@
 defmodule Bsp.Layout do
   @moduledoc """
-  	The Engine keeps track of the layout tree. It exposes the following methods
-
-  	# Layout Manipulation API.
-    Layout.new/1
-    Layout.split/3
-    Layout.close/2
-    Layout.swap/3
-    Layout.focus/2
-
+  	This module allows for manipulation of the layout tree.
   """
 
   alias Bsp.{Node, Pane}
