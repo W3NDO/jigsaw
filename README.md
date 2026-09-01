@@ -13,7 +13,7 @@
 
 ---
 
-Jigsaw is a proof of concept for a display tiling library. "Right now, we can create and split panes. The layout is currently generated with a variant the binary space partitioning algorithm. Built with and for Elixir and Phoenix LiveView.
+Jigsaw is a proof of concept for a layout tiling library. Right now, we can create and split panes. The layout is currently generated with a variant the binary space partitioning algorithm. Built with and for Elixir and Phoenix LiveView.
 
 
 

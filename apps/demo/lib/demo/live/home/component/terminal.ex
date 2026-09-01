@@ -77,7 +77,7 @@ defmodule Live.Home.Component.Terminal do
             about: () => [
               "-------- Jigsaw --------",
               "\n",
-              "Jigsaw is a proof of concept for a display tiling library.",
+              "Jigsaw is a proof of concept for a layout tiling library.",
               "\n",
               "Right now, we can create and split panes. Click on any of the icons below and it will open a new pane.",
               "\n",

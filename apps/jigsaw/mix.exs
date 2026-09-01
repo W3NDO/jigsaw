@@ -49,7 +49,7 @@ defmodule Jigsaw.MixProject do
   end
 
   defp description do
-    "Jigsaw is a proof of concept for a display tiling library akin to what one would find with Dwindle on Hyprland. The layout is currently generated with a variant the binary space partitioning algorithm. Built with and for Elixir and Phoenix LiveView."
+    "Jigsaw is a proof of concept for a layout tiling library for Phoenix LiveView. The layout is currently generated with a variant the binary space partitioning algorithm. Built with and for Elixir and Phoenix LiveView."
   end
 
   defp package() do

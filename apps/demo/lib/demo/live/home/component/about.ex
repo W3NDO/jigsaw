@@ -23,7 +23,7 @@ defmodule Live.Home.Component.About do
         <div class="m-auto min-w-[70%] w-[70%] overflow-y-auto min-h-[20%] h-[80%]">
           <h1 class="text-2xl py-2">What is Jigsaw</h1>
           <p>
-            Jigsaw is a proof of concept for a display tiling library to be used with phoenix Liveview.
+            Jigsaw is a proof of concept for a layout tiling library to be used with phoenix Liveview.
           </p>
 
           <h1 class="text-2xl py-2">What it can do</h1>

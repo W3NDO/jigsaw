@@ -1,6 +1,8 @@
 defmodule Bsp.Node do
   @moduledoc """
-  Node represents a split in the layout with a left and right side. Direction represents the direction of the split. Ratio at the moment is unused.
+  Node represents a split in the layout with a left and right side. Direction represents the direction of the split.
+
+  The `ratio` field is currently experimental and reserved for future proportional layout support and is not used when calculating geometry.
   """
 
   alias Types.Id

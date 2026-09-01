@@ -6,6 +6,7 @@ defmodule JigsawComponents.Components do
 
   A Jigsaw layout can be rendered by providing a Bsp.Layout and defining a slot for each pane:
   ```
+
     <JigsawComponents.Components.layout jigsaw_layout={@jigsaw_layout}>
       <:pane id="terminal">
         <MyApp.Terminal />
