@@ -1,6 +1,6 @@
 defmodule Bsp.Node do
   @moduledoc """
-  Node represents a split.
+  Node represents a split in the layout with a left and right side. Direction represents the direction of the split. Ratio at the moment is unused.
   """
 
   @type t :: %__MODULE__{

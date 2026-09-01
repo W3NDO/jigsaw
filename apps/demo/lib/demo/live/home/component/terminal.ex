@@ -1,5 +1,7 @@
 defmodule Live.Home.Component.Terminal do
-
+  @moduledoc """
+  Terminal component for the demo
+  """
   use Phoenix.Component
   import Demo.CoreComponents
 
@@ -8,22 +10,25 @@ defmodule Live.Home.Component.Terminal do
     <div
       phx-hook=".JigsawTerminal"
       phx-update="ignore"
-      class="w-full h-full overflow-wrap font-mono min-h-0 text-sm bg-slate-900 rounded-sm" id="terminal_component">
+      class="w-full h-full overflow-wrap font-mono min-h-0 text-sm bg-slate-900 rounded-sm"
+      id="terminal_component"
+    >
       <!-- Terminal header -->
-        <div class="flex h-7 shrink-0 items-center border-b border-white/10 px-2">
-          <div class="ml-3 w-full flex items-center justify-between gap-1 text-sm text-gray-400">
-            <div>
-              <.icon name="hero-command-line" class="size-5" />
-              <span>{"Terminal"}</span>
-            </div>
-            <button phx-click="close" class="hover:cursor-pointer text-normal" phx-value-pane="terminal"> x </button>
+      <div class="flex h-7 shrink-0 items-center border-b border-white/10 px-2">
+        <div class="ml-3 w-full flex items-center justify-between gap-1 text-sm text-gray-400">
+          <div>
+            <.icon name="hero-command-line" class="size-5" />
+            <span>{"Terminal"}</span>
           </div>
+          <button phx-click="close" class="hover:cursor-pointer text-normal" phx-value-pane="terminal">
+            x
+          </button>
         </div>
+      </div>
 
-        <div id="terminal-output" class="min-h-0 flex-1 overflow-y-auto p-3 ">
-
-          <div class="text-white">
-            <pre>
+      <div id="terminal-output" class="min-h-0 flex-1 overflow-y-auto p-3 ">
+        <div class="text-white">
+          <pre>
               ___  ___  ________  ________  ________  ___       __
             |\  \|\  \|\   ____\|\   ____\|\   __  \|\  \     |\  \
             \ \  \ \  \ \  \___|\ \  \___|\ \  \|\  \ \  \    \ \  \
@@ -34,24 +39,24 @@ defmodule Live.Home.Component.Terminal do
                                     \|_________|
 
             </pre>
-          </div>
-            <div class="text-gray-500">
-              Type <span class="text-green-400">help</span> for available commands.
-            </div>
+        </div>
+        <div class="text-gray-500">
+          Type <span class="text-green-400">help</span> for available commands.
+        </div>
 
-            <div class="mt-2 flex">
-              <span class="mr-2 text-green-400">></span>
+        <div class="mt-2 flex">
+          <span class="mr-2 text-green-400">></span>
 
-              <input
-                id="terminal-input"
-                type="text"
-                class="min-w-0 flex-1 border-0 bg-transparent p-0 text-gray-200 outline-none focus:ring-0"
-                autocomplete="off"
-                spellcheck="false"
-                autofocus
-              />
-            </div>
-          </div>
+          <input
+            id="terminal-input"
+            type="text"
+            class="min-w-0 flex-1 border-0 bg-transparent p-0 text-gray-200 outline-none focus:ring-0"
+            autocomplete="off"
+            spellcheck="false"
+            autofocus
+          />
+        </div>
+      </div>
     </div>
 
     <script :type={Phoenix.LiveView.ColocatedHook} name=".JigsawTerminal">

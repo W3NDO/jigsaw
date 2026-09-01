@@ -2,9 +2,9 @@ defmodule Bsp.Layout do
   @moduledoc """
   	The Engine keeps track of the layout tree. It exposes the following methods
 
-  	# Layout Manipulation
+  	# Layout Manipulation API.
     Layout.new/1
-    Layout.split/4
+    Layout.split/3
     Layout.close/2
     Layout.swap/3
     Layout.focus/2
@@ -12,20 +12,19 @@ defmodule Bsp.Layout do
   """
 
   alias Bsp.{Node, Pane}
-  alias Types.{Id, PaneShape, ValidationError}
+  alias Types.{Id, ValidationError}
 
-  defstruct [root: nil, focused: nil, pane_ids: []]
+  defstruct root: nil, focused: nil, pane_ids: []
 
   @type t :: %{root: tree(), focused: String.t(), pane_ids: list(String.t())}
 
   @type tree :: Pane.t() | Node.t()
 
-  @doc"""
+  @doc """
   Creates a new empty layout
   """
   @spec new :: %__MODULE__{}
   def new, do: %__MODULE__{}
-
 
   @doc """
   Creates a new Layout with a single pane
@@ -33,7 +32,7 @@ defmodule Bsp.Layout do
   @spec new(Pane.t()) :: %__MODULE__{}
   def new(%Pane{id: root_name} = root_pane) do
     %__MODULE__{
-      root: %{root_pane | shape: %PaneShape{position: {0, 0}, width: 100, height: 100}},
+      root: root_pane,
       focused: root_name,
       pane_ids: [root_name]
     }
@@ -41,11 +40,16 @@ defmodule Bsp.Layout do
 
   def new(_), do: {:error, :invalid_layout}
 
-  @doc"""
+  @doc """
   Takes an empty layout and a pane and returns the layout with the pane.
+
+  ## Examples
+
+      iex> Bsp.Layout.insert(%Bsp.Layout{root: nil, focused: nil, pane_ids: []}, %Bsp.Pane{id: "temp"})
+      %Bsp.Layout{root: %Bsp.Pane{id: "temp"}, focused: "temp", pane_ids: ["temp"]}
   """
-  @spec insert(__MODULE__.t(), Pane.t()) :: __MODULE__.t()
-  def insert(%__MODULE__{pane_ids: pane_ids } = layout, %Pane{id: id} = pane) do
+  @spec insert(__MODULE__.t(), Pane.t()) :: __MODULE__.t() | {:error, :invalid_layout}
+  def insert(%__MODULE__{pane_ids: pane_ids} = layout, %Pane{id: id} = pane) do
     %{layout | root: pane, focused: id, pane_ids: [id | pane_ids]}
   end
 
@@ -74,14 +78,12 @@ defmodule Bsp.Layout do
         target_id,
         new_id
       ) do
-    shape = %PaneShape{position: {0, 0}, width: 0, height: 0}
-
     new_root = %Node{
       id: Id.gen_id(),
       direction: :horizontal,
       ratio: 0.5,
       left: pane,
-      right: %Pane{id: new_id, shape: shape}
+      right: %Pane{id: new_id}
     }
 
     {:ok, %{layout | root: new_root, focused: new_id, pane_ids: [new_id | pane_ids]}}
@@ -106,16 +108,17 @@ defmodule Bsp.Layout do
 
       false ->
         case do_split(root, target_id, new_id) do
-          {:ok, new_root} -> {:ok, %{layout | root: new_root, pane_ids: [new_id | pane_ids]}}
-          {:error, :pane_not_found} -> {:error, :pane_not_found}
+          {:ok, new_root} ->
+            {:ok, %{layout | focused: new_id, root: new_root, pane_ids: [new_id | pane_ids]}}
+
+          {:error, :pane_not_found} ->
+            {:error, :pane_not_found}
         end
     end
   end
 
   # Found the pane to split
   defp do_split(%Pane{id: id} = pane, id, new_id, direction) do
-    shape = %PaneShape{position: {0, 0}, width: 0, height: 0}
-
     new_direction =
       case direction do
         :horizontal -> :vertical
@@ -128,7 +131,7 @@ defmodule Bsp.Layout do
        direction: new_direction,
        ratio: 0.5,
        left: pane,
-       right: %Pane{id: new_id, shape: shape}
+       right: %Pane{id: new_id}
      }}
   end
 
@@ -225,9 +228,10 @@ defmodule Bsp.Layout do
       true ->
         pane_ids = List.delete(pane_ids, pane_id)
         new_focused = if Enum.empty?(pane_ids), do: nil, else: Enum.random(pane_ids)
+
         case do_close(root, pane_id) do
           {:ok, new_root} ->
-            {:ok, %{layout | root: new_root, focused: new_focused,  pane_ids: pane_ids}}
+            {:ok, %{layout | root: new_root, focused: new_focused, pane_ids: pane_ids}}
 
           {:error, :pane_not_found} ->
             {:error, :pane_not_found}
@@ -317,15 +321,16 @@ defmodule Bsp.Layout do
   # Layout.parent/2
   # Layout.children/2
   # Layout.validate/1
-  #
-  # =============== Yet to Implement
-  # Layout.compute/2
-  # Layout.serialize/1
-  # Layout.deserialize/1
-  #
+
+  @doc """
+  Returns a list of pane_ids that exist in the layout tree
+  """
   @spec panes(%__MODULE__{}) :: list(Id.t())
   def panes(%__MODULE__{pane_ids: pane_ids}), do: pane_ids
 
+  @doc """
+  Finds a pane with the specified `pane_id` in the tree. Returns a pane struct or `{:error, :pane_not_found}`
+  """
   @spec find(%__MODULE__{}, Id.t()) :: Pane.t() | {:error, :pane_not_found}
   def find(%__MODULE__{root: layout_node, pane_ids: pane_ids}, pane_id) do
     case Enum.member?(pane_ids, pane_id) do
@@ -375,6 +380,9 @@ defmodule Bsp.Layout do
     {:error, :pane_not_found}
   end
 
+  @doc """
+  Queries whether a pane is in focus or not. Returns a boolean or `{:error, :pane_not_found}` if the `pane_id` doesn't exist
+  """
   @spec focused?(%__MODULE__{}, Id.t()) :: boolean()
   def focused?(%__MODULE__{focused: focused, pane_ids: pane_ids}, pane_id) do
     case Enum.member?(pane_ids, pane_id) do
@@ -386,16 +394,25 @@ defmodule Bsp.Layout do
     end
   end
 
+  @doc """
+  Returns `{:ok, pane_id}` with `pane_id` being the id of the pane in focus. Could also return nil if there are no panes.
+  """
   @spec focused(%__MODULE__{}) :: {:ok, Id.t()}
   def focused(%__MODULE__{focused: focused}) do
     {:ok, focused}
   end
 
+  @doc """
+  Returns `pane_id` in focus or nil.
+  """
   @spec focused!(%__MODULE__{}) :: Id.t()
   def focused!(%__MODULE__{focused: focused}) do
     focused
   end
 
+  @doc """
+  Returns a Node struct, or {:error, :pane_not_found} or {:error, :no_parent}.
+  """
   @spec parent(%__MODULE__{}, Id.t()) ::
           {:ok, Node.t()} | {:error, :pane_not_found} | {:error, :no_parent}
   def parent(%__MODULE__{root: root_node, pane_ids: pane_ids}, pane_id) do
@@ -438,6 +455,9 @@ defmodule Bsp.Layout do
     {:error, :no_parent}
   end
 
+  @doc """
+  Returns a Node struct, or {:error, :node_not_found} or {:error, :no_children}.
+  """
   @spec children(%__MODULE__{}, String.t()) ::
           {:ok, list(Pane.t())} | {:error, :node_not_found} | {:error, :no_children}
   def children(%__MODULE__{root: root_node}, node_id) do
@@ -559,22 +579,8 @@ defmodule Bsp.Layout do
     end
   end
 
-  defp do_validate(%Pane{id: id, shape: %PaneShape{}} = pane) do
-    case validate_pane(pane) do
-      {:ok, :valid} -> {:ok, :valid}
-      {:error, validation_error} -> {:error, %{validation_error | id: id}}
-    end
-  end
-
-  defp do_validate(%Pane{id: id, shape: nil}) do
-    {:error,
-     %ValidationError{
-       subject: :shape,
-       id: id,
-       validation: :pane_shape,
-       reason: :invalid_pane_shape,
-       message: "Pane shape required"
-     }}
+  defp do_validate(%Pane{id: _id}) do
+    {:ok, :valid}
   end
 
   # Validates a node
@@ -610,23 +616,4 @@ defmodule Bsp.Layout do
   end
 
   def validate_node(_), do: false
-
-  # Validates a pane.
-  defp validate_pane(%Pane{id: id, shape: pane_shape}) when is_binary(id) do
-    case PaneShape.validate_points(pane_shape) do
-      {:ok, :valid} -> {:ok, :valid}
-      {:error, error} -> {:error, %{error | id: id}}
-    end
-  end
-
-  defp validate_pane(_),
-    do:
-      {:error,
-       %ValidationError{
-         subject: :pane,
-         id: nil,
-         validation: :pane_shape,
-         reason: :unkown,
-         message: "Unkown pane error"
-       }}
 end

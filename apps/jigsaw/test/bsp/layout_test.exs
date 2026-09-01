@@ -1,18 +1,19 @@
 defmodule Bsp.LayoutTest do
   use ExUnit.Case
   alias Bsp.{Layout, Node, Pane}
-  alias Types.{PaneShape, ValidationError}
+  alias Types.ValidationError
+
+  doctest Bsp.Layout
 
   describe "Generating a new layout" do
     test "creating an empty layout" do
-      assert %Layout{root: nil, pane_ids: [], focused: nil} == Layout.new
+      assert %Layout{root: nil, pane_ids: [], focused: nil} == Layout.new()
     end
 
     test "creating a valid layout" do
       assert %Bsp.Layout{
                root: %Bsp.Pane{
-                 id: "root",
-                 shape: %Types.PaneShape{height: 100, position: {0, 0}, width: 100}
+                 id: "root"
                },
                focused: "root",
                pane_ids: ["root"]
@@ -27,14 +28,19 @@ defmodule Bsp.LayoutTest do
 
   describe "Updating an empty layout" do
     setup do
-      %{empty_layout: Layout.new}
-    end
-    test "accepts a pane and updates the layout", %{empty_layout: empty_layout} do
-      pane = %Pane{id: "root"}
-      assert %Layout{root: pane, pane_ids: ["root"], focused: "root"} = Layout.insert(empty_layout, pane)
+      %{empty_layout: Layout.new()}
     end
 
-    test "errors out if you try and insert a node on an empty layout", %{empty_layout: empty_layout} do
+    test "accepts a pane and updates the layout", %{empty_layout: empty_layout} do
+      pane = %Pane{id: "root"}
+
+      assert %Layout{root: _pane, pane_ids: ["root"], focused: "root"} =
+               Layout.insert(empty_layout, pane)
+    end
+
+    test "errors out if you try and insert a node on an empty layout", %{
+      empty_layout: empty_layout
+    } do
       node = %Node{id: "node_id", left: %Pane{id: "left"}, right: %Pane{id: "right"}}
       assert {:error, :invalid_layout} = Layout.insert(empty_layout, node)
     end
@@ -412,21 +418,11 @@ defmodule Bsp.LayoutTest do
   describe "validate/1" do
     setup do
       left = %Pane{
-        id: "left",
-        shape: %PaneShape{
-          position: {0.0, 0.0},
-          width: 0.5,
-          height: 0.5
-        }
+        id: "left"
       }
 
       right = %Pane{
-        id: "right",
-        shape: %PaneShape{
-          position: {0.0, 0.0},
-          width: 0.5,
-          height: 0.5
-        }
+        id: "right"
       }
 
       root = %Node{
@@ -458,21 +454,6 @@ defmodule Bsp.LayoutTest do
       assert error.id == "root"
       assert error.subject == :node
       assert error.reason == :direction_invariant
-    end
-
-    test "rejects a pane without a shape", %{layout: layout, root: root, left: left} do
-      left = %{left | shape: nil}
-      root = %{root | left: left}
-      layout = %{layout | root: root}
-
-      assert {:error, %ValidationError{} = error} =
-               Layout.validate(layout)
-
-      assert error.subject == :shape
-      assert error.id == "left"
-      assert error.validation == :pane_shape
-      assert error.reason == :invalid_pane_shape
-      assert error.message == "Pane shape required"
     end
   end
 end

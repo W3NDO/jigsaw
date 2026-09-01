@@ -89,6 +89,7 @@ defmodule Demo do
 
       # Common modules used in templates
       alias Phoenix.LiveView.JS
+
       alias Demo.Layouts
 
       # Routes generation with the ~p sigil

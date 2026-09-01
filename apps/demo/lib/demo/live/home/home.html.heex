@@ -1,49 +1,49 @@
 <Layouts.flash_group flash={@flash} />
-<div class="w-full flex flex-col">
+<div class="w-full flex flex-col" phx-window-keydown="jigsaw-key-shortcuts">
   <!-- Wallpaper -->
-  <img src="images/jigsaw_background.jpg" class="h-dvh w-dvw brightness-30 absolute top-0 -z-99">
-
-  <!-- Top bar -->
-  <div
-    class="absolute inset-x-0 top-0 z-50 h-[3dvh] min-h-7 border-b border-white/10 bg-gray-950/85 px-4 shadow-sm backdrop-blur"
-  >
+  <img src="images/jigsaw_background.jpg" class="h-dvh w-dvw brightness-30 absolute top-0 -z-99" />
+  
+<!-- Top bar -->
+  <div class="absolute inset-x-0 top-0 z-50 h-[3dvh] min-h-7 border-b border-white/10 bg-gray-950/85 px-4 shadow-sm backdrop-blur">
     <ul class="grid h-full grid-cols-3 items-center text-xs font-medium">
       <!-- Clock -->
       <li id="clock" class="justify-self-start text-gray-300" phx-update="ignore">
         --:--
       </li>
-
-      <!-- Application -->
-      <li class="justify-self-center tracking-wide text-white">
-        JIGSAW
+      
+<!-- Application -->
+      <li class="justify-self-center tracking-wide uppercase text-white">
+        {@focused || "JIGSAW"}
       </li>
-
-      <!-- Battery -->
+      
+<!-- Battery -->
       <li class="flex items-center gap-1.5 justify-self-end text-gray-300">
         <.icon name="hero-user" class="size-4" />
         <span>DEMO USER</span>
       </li>
     </ul>
   </div>
-
-    <!-- Bottom navbar -->
+  
+<!-- Bottom navbar -->
   <div class="w-[50vw] p-1 m-auto border rounded-full border-slate-500 absolute left-[25vw] bottom-10 z-10 hover:bg-gray-950/85">
     <div class="flex justify-around">
       <ul class="flex justify-between">
         <%= for pane <- @available_panes_id do %>
           <li>
             <button phx-click="toggle-pane" phx-value-pane={pane} class="m-1 rounded-md px-2 ">
-              <div class={"rounded-sm hover:border-b hover:border-slate-500 #{if Enum.member?(@active_panes, pane), do: "border-t border-slate-500", else: "border-transparent"} "} title={pane}>
-                <%= case pane do%>
+              <div
+                class={"rounded-sm hover:border-b hover:border-slate-500 #{if Enum.member?(@active_panes, pane), do: "border-t border-slate-500", else: "border-transparent"} "}
+                title={"#{pane}. CTRL+#{Enum.find_index(@available_panes_id, &(&1 == pane))+1}"}
+              >
+                <%= case pane do %>
                   <% "terminal" -> %>
-                      <.icon name="hero-command-line" class="size-10"/>
-
+                    <div title="CTRL+1"><.icon name="hero-command-line" class="size-10" /></div>
                   <% "music" -> %>
-                    <.icon name="hero-play" class="size-10" />
-
+                    <div title="CTRL+2"><.icon name="hero-play" class="size-10" /></div>
                   <% "about" -> %>
-                    <.icon name="hero-information-circle" class="size-10" />
-
+                    <div title="CTRL+3">
+                      <.icon name="hero-information-circle" class="size-10" />
+                    </div>
                 <% end %>
               </div>
             </button>
@@ -56,15 +56,15 @@
   <div class="absolute top-[3dvh] h-[96vh] min-h-[96dvh] w-full">
     <div class="h-full w-full">
       <JigsawComponents.Components.layout jigsaw_layout={@jigsaw_layout}>
-        <:pane id="terminal">
+        <:pane id="terminal" focused={@focused == "terminal"}>
           <Live.Home.Component.Terminal.terminal />
         </:pane>
 
-        <:pane id="music">
+        <:pane id="music" focused={@focused == "music"}>
           <Live.Home.Component.Music.music />
         </:pane>
 
-        <:pane id="about">
+        <:pane id="about" focused={@focused == "about"}>
           <Live.Home.Component.About.about />
         </:pane>
       </JigsawComponents.Components.layout>

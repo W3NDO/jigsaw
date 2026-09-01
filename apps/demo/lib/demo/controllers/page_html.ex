@@ -6,7 +6,5 @@ defmodule Demo.PageHTML do
   """
   use Demo, :html
 
-  import Jigsaw
-
   embed_templates "page_html/*"
 end

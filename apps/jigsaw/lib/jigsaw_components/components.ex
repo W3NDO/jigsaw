@@ -1,16 +1,50 @@
 defmodule JigsawComponents.Components do
-  @moduledoc false
+  @moduledoc """
+  Provides Phoenix LiveView components for rendering and interacting with Jigsaw layouts.
+
+  The components act as the presentation layer for the Jigsaw BSP layout engine. A Bsp.Layout describes the structure of the layout, while the components transform that structure into a hierarchy of HTML elements containing user-provided Phoenix slots.
+
+  A Jigsaw layout can be rendered by providing a Bsp.Layout and defining a slot for each pane:
+  ```
+    <JigsawComponents.Components.layout jigsaw_layout={@jigsaw_layout}>
+      <:pane id="terminal">
+        <MyApp.Terminal />
+      </:pane>
+
+      <:pane id="about">
+        <MyApp.About />
+      </:pane>
+
+      <:pane id="stats">
+        <MyApp.Stats />
+      </:pane>
+    </JigsawComponents.Components.layout>
+  ```
+
+  The id of each :pane slot corresponds to the ID of a Bsp.Pane in the layout. Jigsaw uses this ID to associate the supplied content with its corresponding pane.
+
+  ## Pane slots
+
+  The `:pane` slot accepts the following attributes:
+
+  id — identifies the pane and must correspond to a pane in the Bsp.Layout.
+  focused — indicates whether the pane is currently focused. Default should be false.
+
+  The component does not require the content of a pane to be a particular type of component. Any valid HEEx content can be placed inside a pane.
+
+  The component does not own the layout itself. Layout manipulation should be performed through the Bsp.Layout API.
+  """
 
   use Phoenix.Component
 
-  alias Bsp.{Layout, Pane, Node}
+  alias Bsp.{Layout, Node, Pane}
 
-  attr :id, :string, default: "root"
-  attr :jigsaw_layout, :map, required: true
+  attr(:id, :string, default: "root")
+  attr(:jigsaw_layout, :map, required: true)
 
   slot :pane, required: true do
-    attr :id, :string, required: true
-    attr :hidden, :boolean
+    attr(:id, :string, required: true)
+    attr(:focused, :boolean)
   end
 
   def layout(assigns) do
@@ -23,18 +57,22 @@ defmodule JigsawComponents.Components do
 
   defp render_tree(%Layout{root: %Pane{} = pane}, slots) do
     assigns = %{
-      pane: pane, slots: slots
+      pane: pane,
+      slots: slots
     }
+
     ~H"""
     <div class="w-full h-full flex">
-      <.node_or_pane pane={pane} slots={slots} />
+      <.node_or_pane pane={@pane} slots={@slots} />
     </div>
     """
   end
 
   defp render_tree(%Layout{root: nil}, slots) do
     assigns = %{
+      slots: slots
     }
+
     ~H"""
     <div class="w-full h-full flex ">
     </div>
@@ -43,16 +81,18 @@ defmodule JigsawComponents.Components do
 
   defp render_tree(%Layout{root: %Node{} = node}, slots) do
     assigns = %{
-      pane: node, slots: slots
+      node: node,
+      slots: slots
     }
+
     ~H"""
     <div class="w-full h-full flex">
-      <.node_or_pane pane={node} slots={slots} />
+      <.node_or_pane pane={@node} slots={@slots} />
     </div>
     """
   end
 
-  def node_or_pane(%{pane: %Pane{id: id}, slots: slots} = assigns) do
+  defp node_or_pane(%{pane: %Pane{id: id}, slots: slots} = assigns) do
     slot = find_slot(slots, id)
 
     assigns = assign(assigns, :slot, slot)
@@ -60,7 +100,7 @@ defmodule JigsawComponents.Components do
     ~H"""
     <div id={@pane.id} class="flex h-full w-full flex-1 flex-col p-2 rounded-sm bg-slate-400">
       <%= if @slot do %>
-        <div class="w-full h-full">
+        <div class={"w-full h-full #{if @slot.focused, do: "rounded-sm border border-red-500", else: ""}"}>
         <%= render_slot(@slot) %>
         </div>
       <% end %>
@@ -68,7 +108,7 @@ defmodule JigsawComponents.Components do
     """
   end
 
-  def node_or_pane(
+  defp node_or_pane(
          %{
            pane: %Node{
              left: left_pane,
