@@ -51,4 +51,41 @@ def deps do
 end
 ```
 
+## Roadmap
+
+### v0.1 — Prototype
+
+- [x] BSP-based layout engine
+- [x] Dynamic pane splitting
+- [x] Pane closing
+- [x] Pane focusing
+- [x] Layout validation
+- [x] Phoenix LiveView components
+- [x] Dynamic pane slots
+- [x] Example dashboard
+- [x] Documentation and examples
+
+### v0.2 — Interactivity
+
+- [ ] Keyboard navigation API
+- [ ] Persistent pane state
+- [ ] Pane resizing
+- [ ] Improved client-side interactions
+- [ ] Layout persistence
+
+### v0.3 — Frontend API
+For the frontend the goal is to build the entire interaction API with Hologram.
+
+- [ ] Hologram integration
+- [ ] Client-side layout manipulation
+- [ ] Animations
+
+### v1.0 — Stable API
+
+- [ ] Stable public API
+- [ ] Comprehensive documentation
+- [ ] Property-based testing
+- [ ] Performance benchmarks
+- [ ] Production-ready state management
+
 Documentation can be found at <https://hexdocs.pm/jigsaw>.
