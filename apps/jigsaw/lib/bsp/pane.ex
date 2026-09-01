@@ -3,9 +3,11 @@ defmodule Bsp.Pane do
   Defines a pane.
   """
 
+  alias Types.Id
+
   defstruct [:id]
 
   @type t :: %__MODULE__{
-          id: String.t()
+          id: Id.t()
         }
 end

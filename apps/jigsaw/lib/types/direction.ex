@@ -1,5 +1,7 @@
 defmodule Types.Direction do
-  @moduledoc false
+  @moduledoc """
+  Specifies the directions allowed for splitting a node
+  """
 
   # :horizontal -> split left/right.
   # :vertical -> split top/bottom
