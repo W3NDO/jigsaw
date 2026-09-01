@@ -24,8 +24,6 @@ Jigsaw is a proof of concept for a layout tiling library. Right now, we can crea
 2. Run `mix deps.get`
 3. Run `mix phx.server`. This will load the demo application at which you can visit at `http://localhost:4000`. 
 
-
-
 ## Resources & References
 - https://madnight.github.io/bspwm/
 - https://jmelosegui.com/mosaico/
