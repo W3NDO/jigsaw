@@ -17,6 +17,13 @@
 
 Jigsaw is a proof of concept for a layout tiling library. Right now, we can create and split panes. The layout is currently generated with a variant the binary space partitioning algorithm. Built with and for Elixir and Phoenix LiveView.
 
+---
+
+### Running the demo
+1. Clone this repository. 
+2. Run `mix deps.get`
+3. Run `mix phx.server`. This will load the demo application at which you can visit at `http://localhost:4000`. 
+
 
 
 ## Resources & References
